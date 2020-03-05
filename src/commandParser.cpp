@@ -43,47 +43,74 @@ inline float cmd_buffer_to_number(){
     return atof(buffer);
 }
 
+inline uint64_t cmd_buffer_to_key(){
+    uint64_t result=0;
+    char p;
+    for (int i=15; i>=0; --i){
+        commandBuffer.pop(p);
+        if(p>='0' and p<='9'){
+            result |= uint64_t(p-'0')<<(i*4);
+        }else if(p>='A' and p<='F'){
+            result |= uint64_t(p-'A'+10)<<(i*4);
+        }else if(p>='a' and p<='f'){
+            result |= uint64_t(p-'a'+10)<<(i*4);
+        }else{
+            // unexpected case, just return
+            break;
+        }
+    }
+
+    // safe guard, flush current line
+    if (p!='\r') cmd_buffer_skip_line();
+
+    return result;
+}
+
 void TRD_command_parser(){
     while(true){
         ThisThread::flags_wait_any(SIGNAL_NEWLINE); // blocking
 
         // parse command
         char cmd_type;
-        commandBuffer.pop(cmd_type);
+        bool valid = commandBuffer.pop(cmd_type);
 
+        if (valid){
+            switch (cmd_type){
+            case 'R':
+                motorCfgMutex.lock();
+                motorCfg.TRotation = cmd_buffer_to_number();
+                motorCfgMutex.unlock();
 
-        switch (cmd_type){
-        case 'R':
-            motorCfgMutex.lock();
-            motorCfg.TRotation = cmd_buffer_to_number();
-            motorCfgMutex.unlock();
+                motorController.flags_set(SIGNAL_MOTOR_T_ROTATION_CHANGE);
+                break;
 
-            motorController.flags_set(SIGNAL_MOTOR_T_ROTATION_CHANGE);
-            break;
+            case 'V':
+                motorCfgMutex.lock();
+                motorCfg.TSpeed = cmd_buffer_to_number();
+                motorCfgMutex.unlock();
 
-        case 'V':
-            motorCfgMutex.lock();
-            motorCfg.TSpeed = cmd_buffer_to_number();
-            motorCfgMutex.unlock();
+                motorController.flags_set(SIGNAL_MOTOR_T_SPEED_CHANGE);
+                break;
 
-            motorController.flags_set(SIGNAL_MOTOR_T_SPEED_CHANGE);
-            break;
+            case 'K':
+                hashKeyMutex.lock();
+                hashKey = cmd_buffer_to_key();
+                hashKeyMutex.unlock();
 
-        case 'K':
-            pc.printf("\nK command\n");
-            cmd_buffer_skip_line();
-            break;
+                hashCracker.flags_set(SIGNAL_HASH_KEY_CHANGE);
 
-        case 'T':
-            pc.printf("\nT command\n");
-            cmd_buffer_skip_line();
-            break;
+                break;
 
-        default:
-            pc.printf("\nUnkown command\n");
-            cmd_buffer_skip_line();
+            case 'T':
+                pc.printf("\nT command\n");
+                cmd_buffer_skip_line();
+                break;
+
+            default:
+                pc.printf("\nUnkown command\n");
+                cmd_buffer_skip_line();
+            }
         }
-
 
     }
 }
