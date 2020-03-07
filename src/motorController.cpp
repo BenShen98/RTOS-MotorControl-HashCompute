@@ -88,7 +88,7 @@ const int8_t stateMap[] = {0x07,0x05,0x03,0x04,0x01,0x00,0x02,0x07};
 
 //Phase lead to make motor spin
 #define LEAD 2
-int8_t lead = LEAD;  // should only be changed by setTorque
+volatile int8_t lead = LEAD;  // should only be changed by setTorque
 
 
 //Photointerrupter inputs
@@ -171,13 +171,15 @@ void ISR_update_position () {
 
     /*
     if turn forward:
-        accPosition += 6-forwardIncrement)
+        accPosition += forwardIncrement
     if turn backward:
         accPosition -= (6-forwardIncrement)
             eqv to  += forwardIncrement -6
     */
+
+    //ASSUMPTION: ISR is not skiped for more than three encoder postion
     accPosition += forwardIncrement; //correct for forward
-    if (lead < 0) accPosition -= 6;
+    if (forwardIncrement>3) accPosition -= 6; // by assumption, this would only happen if motor is turn backward
 
     // write for next ISR
     oldRotorState = newRotorState;
@@ -235,7 +237,7 @@ void TRD_motor_controller(){
     float tPosition; // convert unit to encoderPostion
 
     tSpeed=50.0*6/10; //here is speed, no direction
-    tPosition=4000.0*6/10;
+    tPosition=1000.0*6;
 
     const int32_t PWM_PRD = 2000;
     MotorPWM.period_us(PWM_PRD);
@@ -265,12 +267,13 @@ void TRD_motor_controller(){
     // volatile int32_t errorVelocity = 0;           // velocity (has sign)
 
     // Distance control
-    int32_t errorPosition;
-    static int32_t errorPositionOld = tPosition; // motorPosition=0 when start;
+    float errorPosition;
+    static float errorPositionOld = tPosition; // motorPosition=0 when start;
 
     //Speed control
-    int32_t errorSpeed;
-    static int32_t errorSpeedIntegral = 0;
+    float errorSpeed;
+    static float errorSpeedOld = tSpeed;
+    static float errorSpeedIntegral = 0;
 
 
 
@@ -294,11 +297,11 @@ void TRD_motor_controller(){
             // Distance controller
             errorPosition = tPosition - motorPosition;
             float errorPosition_Diff = errorPosition - errorPositionOld;
-            torque_d = D_KP*errorPosition + D_KD*(errorPosition - errorPositionOld); //checked
+            torque_d = D_KP*errorPosition + D_KD*(errorPosition_Diff); //checked
             errorPositionOld = errorPosition;
 
             // Speed controller
-            errorSpeed = tSpeed - abs(motorVelocity);
+            errorSpeed = abs(motorVelocity) - tSpeed;
             errorSpeedIntegral += errorSpeed;
             if(errorSpeedIntegral>V_INTERGAL_CAP) errorSpeedIntegral = V_INTERGAL_CAP;
 
@@ -307,7 +310,14 @@ void TRD_motor_controller(){
 
             // select torque
             //TODO
-            setTorque(torque_d);
+            if (motorVelocity>0){
+                torque = torque_d > torque_s ? torque_s : torque_d; // min
+            }else{
+                torque = torque_d > torque_s ? torque_d : torque_s; //max
+            }
+            setTorque(torque_s);
+
+            pc.printf("\n%f, %f, %f, %f\n", float(motorPosition)/6, float(motorVelocity)*10/6, torque_d, torque_s);
         }
 
     //     //set rotation for testig
