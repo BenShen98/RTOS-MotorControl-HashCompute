@@ -6,6 +6,10 @@
 
 #define commandBufferSize 128
 
+/* DEFAULT */
+#define DEFAULT_T_SPEED 100
+#define DEFAULT_T_ROTATION 0
+
 /* FLAGS */
 #define SIGNAL_NEWLINE 0x1
 
