@@ -1,6 +1,10 @@
 #include "dataStructure.hpp"
 #include "motorController.hpp"
 
+
+//debug
+DigitalOut led(LED1);
+
 //Photointerrupter input pins
 #define I1pin D3
 #define I2pin D6
@@ -48,11 +52,6 @@ volatile int32_t motorVelocity = 0; //unit as encoder position per 0.1 second
 
 // PID trigger
 Ticker controllerTicker;
-
-// TARGET
-
-
-
 
 // int8_t  s = 0;
 // float kp =5;
@@ -159,6 +158,50 @@ int8_t motorHome() {
     return readRotorState();
 }
 
+
+// Tune
+// (char-'A'+1) => if ~: -1; if #: +1
+const int tuneTable[]={
+1000000/416,   //0 |G#/A~
+1000000/440,   //1 |A
+1000000/467,   //2 |A#/B~
+1000000/494,   //3 |B
+1000000/2000,  //4 | UNDEFINED
+1000000/262,   //5 |C
+1000000/278,   //6 |C#/D~
+1000000/294,   //7 |D
+1000000/312,   //8 |D#/E~
+1000000/330,   //9 |E
+1000000/2000,  //A| UNDEFINED
+1000000/349,   //B |F
+1000000/370,   //C |F#/G~
+1000000/392,   //D |G
+1000000/416,   //E |G#/A~
+};
+
+Timeout tuner;
+volatile uint8_t tunes[16] = {0}; // remove volitale
+volatile uint8_t tune_idx; // remove volitale
+
+void ISR_tuner(){
+    uint8_t tune = tunes[tune_idx];
+
+    // set current tune
+    MotorPWM.period_us(tuneTable[tune&0xf]);
+
+    // debug
+    led = !led;
+
+    // perpare next tune
+    // see docs, legal range for t are 1-8
+    uint8_t t = tune>>4;
+    tuner.attach_us(&ISR_tuner, 125000*t);
+    if (t==0 || tune_idx==15 ){
+        tune_idx = 0;  // t=0 has special meaing as end of tune sequence
+    }else{
+        tune_idx++;
+    }
+}
 
 void ISR_update_position () {
     //ASSUMPTION: when code start, motor is at state 0
@@ -283,7 +326,7 @@ void TRD_motor_controller(){
     {
 
 
-        uint32_t flags = ThisThread::flags_wait_any(SIGNAL_MOTOR_PID_RUN); // auto clear
+        uint32_t flags = ThisThread::flags_wait_any(SIGNAL_MOTOR_PID_RUN | SIGNAL_MOTOR_T_TUNE_CHANGE); // auto clear
 
         if (flags & SIGNAL_MOTOR_PID_RUN){
             /*
@@ -317,7 +360,29 @@ void TRD_motor_controller(){
             }
             setTorque(torque_s);
 
-            pc.printf("\n%f, %f, %f, %f\n", float(motorPosition)/6, float(motorVelocity)*10/6, torque_d, torque_s);
+            // pc.printf("\n%f, %f, %f, %f\n", float(motorPosition)/6, float(motorVelocity)*10/6, torque_d, torque_s);
+        }
+
+        if (flags & SIGNAL_MOTOR_T_TUNE_CHANGE){
+            led=0;
+            // cancel current sequence
+            tuner.detach();
+
+            // copy data
+            tune_idx = 0;
+            motorCfgMutex.lock();
+            for (int i=0; i<16; ++i){
+                tunes[i] = motorCfg.Tunes[i];
+            }
+            motorCfgMutex.unlock();
+
+            pc.printf("\n");
+            for (int i=0; i<16; i++){
+                pc.printf("%hhX, ", tunes[i]);
+            }
+            pc.printf("\n");
+
+            ISR_tuner();
         }
 
     //     //set rotation for testig

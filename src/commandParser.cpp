@@ -23,6 +23,33 @@ void debug_char(char* buffer, int size){
     pc.printf("\n***\n");
 }
 
+void cmd_buffer_to_tune(volatile uint8_t Tunes[16]){
+    char note;
+    char c;
+    int8_t tune; // [7:4] duration, [3:0] tune table index
+    for (int i=0; i<16; ++i){
+        commandBuffer.pop(note);
+        if (note<'A' || note>'G') {
+            //early exit, end of line or unexpected format
+            Tunes[i] = 0;
+            break;
+        }
+        tune=(note-'A')*2+1; // see docs for conversion
+
+
+        commandBuffer.pop(c); // can be number OR #^
+        if (c>='0' and c<='9'){
+            Tunes[i] = (c-'0')<<4 | tune;
+        }else{
+            if (c=='#') tune += 1;
+            else tune -= 1;
+
+            commandBuffer.pop(c);
+            Tunes[i] = (c-'0')<<4 | tune;
+        }
+    }
+}
+
 inline float cmd_buffer_to_number(){
     // THIS FUNCTION WILL READ UNTIL END OF LINE
     // Accept input format -?\d{1,4}(\.\d)? OR \d{1,3}(\.\d)?
@@ -75,8 +102,11 @@ void TRD_command_parser(){
             break;
 
         case 'T':
-            pc.printf("\nT command\n");
-            cmd_buffer_skip_line();
+            motorCfgMutex.lock();
+            cmd_buffer_to_tune(motorCfg.Tunes);
+            motorCfgMutex.unlock();
+
+            motorController.flags_set(SIGNAL_MOTOR_T_TUNE_CHANGE);
             break;
 
         default:
