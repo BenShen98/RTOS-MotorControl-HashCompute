@@ -20,10 +20,12 @@
 
 #define SIGNAL_HASH_KEY_CHANGE 0x10
 
+
 typedef struct
 {
     float TSpeed;
     float TRotation;
+    uint8_t Tunes[16] = {0};
     // data for motor
 } MotorCfg;
 
