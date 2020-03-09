@@ -2,6 +2,7 @@
 
 #include "commandParser.hpp"
 #include "motorController.hpp"
+#include "hashCracker.hpp"
 
 
 
@@ -31,4 +32,5 @@ int main (void) {
 
     commandParser.start(&TRD_command_parser);
     motorController.start(&TRD_motor_controller);
+    hashCracker.start(&TRD_hash_cracker);
 }
