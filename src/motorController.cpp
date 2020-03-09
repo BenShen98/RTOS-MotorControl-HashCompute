@@ -167,7 +167,6 @@ void setTorque(float t){
     static float motorPositionOld;
     if(abs(t)>0.2 && motorPositionOld==motorPosition){
         // motor stack
-        pc.printf("xxx");
         if (t>0)  motor_forward(); else motor_backward();
     }
     motorPositionOld = motorPosition;
@@ -413,7 +412,7 @@ void TRD_motor_controller(){
 
 
 
-            // pc.printf("\n%f, %f, %f, %f\n", float(motorPosition)/6, float(motorVelocity)*10/6, torque_d, torque_s);
+            // pc.printf("\nR:%f->%f, V:%f->%f, td:%f, ts:%f %f\n", float(motorPosition)/6, float(tPosition)/6, float(motorVelocity)*10/6, float(tSpeed)*10/6, torque_d, torque_s, errorSpeedIntegral);
         }
 
         if (flags & SIGNAL_MOTOR_T_TUNE_CHANGE){
@@ -429,11 +428,11 @@ void TRD_motor_controller(){
             }
             motorCfgMutex.unlock();
 
-            pc.printf("\n");
-            for (int i=0; i<16; i++){
-                pc.printf("%hhX, ", tunes[i]);
-            }
-            pc.printf("\n");
+            // pc.printf("\n");
+            // for (int i=0; i<16; i++){
+            //     pc.printf("%hhX, ", tunes[i]);
+            // }
+            // pc.printf("\n");
 
             ISR_tuner();
 
