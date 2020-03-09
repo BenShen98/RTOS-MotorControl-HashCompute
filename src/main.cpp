@@ -22,7 +22,7 @@ CircularBuffer<char, commandBufferSize> commandBuffer;
 Mutex motorCfgMutex;
 Mutex hashKeyMutex;
 
-volatile MotorCfg motorCfg={.TSpeed=100, .TRotation=0};
+volatile MotorCfg motorCfg={.TSpeed=DEFAULT_T_SPEED, .TRotation=DEFAULT_T_ROTATION};
 volatile uint64_t hashKey=0x0;
 
 /* Main */
