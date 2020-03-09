@@ -6,19 +6,26 @@
 
 #define commandBufferSize 128
 
+/* DEFAULT */
+#define DEFAULT_T_SPEED 100
+#define DEFAULT_T_ROTATION 0
+
 /* FLAGS */
 #define SIGNAL_NEWLINE 0x1
 
 #define SIGNAL_MOTOR_T_SPEED_CHANGE 0x2
 #define SIGNAL_MOTOR_T_ROTATION_CHANGE 0x4
 #define SIGNAL_MOTOR_T_TUNE_CHANGE 0x8
+#define SIGNAL_MOTOR_PID_RUN 0x20
 
 #define SIGNAL_HASH_KEY_CHANGE 0x10
+
 
 typedef struct
 {
     float TSpeed;
     float TRotation;
+    uint8_t Tunes[16] = {0};
     // data for motor
 } MotorCfg;
 
