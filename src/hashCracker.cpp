@@ -45,8 +45,9 @@ void TRD_hash_cracker(){
                 ThisThread::flags_clear(SIGNAL_HASH_KEY_CHANGE);
                 hashKeyMutex.unlock();
 
-                pc.printf("\nSet new key %016llX\n", *key);
-
+#ifdef STATISTIC
+            pc.printf("\nSet new key %016llX\n", *key);
+#endif
                 // no need to reset nonce, 64 bit circular counter
             }
 

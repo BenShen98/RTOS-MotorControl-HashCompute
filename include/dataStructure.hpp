@@ -1,3 +1,9 @@
+#define STATISTIC
+#ifdef STATISTIC
+#include "Kernel.h"
+#endif
+
+
 #ifndef DATASTRUCTURE_H
 #define DATASTRUCTURE_H
 
@@ -30,6 +36,7 @@
 #define TP0pin D4
 #define TP1pin D13
 #define TP2pin A2
+
 
 #define commandBufferSize 128
 
