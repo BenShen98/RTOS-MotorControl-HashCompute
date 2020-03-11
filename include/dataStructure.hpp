@@ -3,6 +3,33 @@
 
 #include "mbed.h"
 
+//Photointerrupter input pins
+#define I1pin D3
+#define I2pin D6
+#define I3pin D5
+
+//Incremental encoder input pins
+#define CHApin   D12
+#define CHBpin   D11
+
+//Motor Drive output pins   //Mask in output byte
+#define L1Lpin D1           //0x01
+#define L1Hpin A3           //0x02
+#define L2Lpin D0           //0x04
+#define L2Hpin A6           //0x08
+#define L3Lpin D10          //0x10
+#define L3Hpin D2           //0x20
+
+#define PWMpin D9
+
+//Motor current sense
+#define MCSPpin   A1
+#define MCSNpin   A0
+
+//Test outputs
+#define TP0pin D4
+#define TP1pin D13
+#define TP2pin A2
 
 #define commandBufferSize 128
 
@@ -19,6 +46,7 @@
 #define SIGNAL_MOTOR_PID_RUN 0x20
 
 #define SIGNAL_HASH_KEY_CHANGE 0x10
+#define SIGNAL_HASH_TICK 0x40
 
 
 typedef struct
