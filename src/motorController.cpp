@@ -15,12 +15,14 @@ volatile float motorPosition = 0; //like accPosition, but only undated in ISR_PI
 volatile float motorVelocity = 0; //unit as encoder position per 0.1 second
 
 // PID config
-#define V_KP 0.4
-#define V_KI 0.05
+#define V_KP 0.1 //0.1
+#define V_KI 0.05 //0.05
+#define V_KD 0.0//0.05
+ //0.01
 //#define V_KI 200.0/2000
-#define V_INTERGAL_CAP_UPPER 50
+#define V_INTERGAL_CAP_UPPER 25
 #define V_INTERGAL_CAP_LOWER -V_INTERGAL_CAP_UPPER
-#define D_KP 0.05
+#define D_KP 0.1
 #define D_KD 0.0
 
 #define APPROACH_V 10 *6/10 // in encoder position per 0.1 second
@@ -30,18 +32,6 @@ volatile float motorVelocity = 0; //unit as encoder position per 0.1 second
 // PID trigger
 Ticker controllerTicker;
 
-// int8_t  s = 0;
-// float kp =5;
-// float   ys = 0;
-// int test = 0;
-// float rotation = 1;
-
-
-// int8_t vel_er =0;
-// int8_t integral_vel_er =0;
-// int8_t old_vel_er = 0;
-// int8_t max_int_vel_err = 0;
-// int8_t diff_vel_error = 0;
 
 //Mapping from sequential drive states to motor phase outputs
 /*
@@ -234,22 +224,6 @@ void ISR_PID_trigger(){
     oldPosition = motorPosition;
     // static float oldDeltaPosition = 0;
 
-    // // calculate P
-    // deltaPosition = accPosition - oldPosition;
-
-    // // calculate I with cap
-    // deltaPositionIntegral += deltaPosition;
-    // if (deltaPositionIntegral > V_KI_CAP_POSITIVE) deltaPositionIntegral = V_KI_CAP_POSITIVE;
-    // if (deltaPositionIntegral < V_KI_CAP_NEGATIVE) deltaPositionIntegral = V_KI_CAP_NEGATIVE;
-
-    // // calculate D
-    // deltaPositionDiff = deltaPosition - oldDeltaPosition;
-
-
-    // oldPosition = accPosition;
-    // oldDeltaPosition = deltaPosition;
-
-    // accPosition =
     motorController.flags_set(SIGNAL_MOTOR_PID_RUN);
 }
 
@@ -295,19 +269,15 @@ void TRD_motor_controller(){
 
 
 
-    // more PID data
-    // volatile float errorVelocityDiff = 0;           // acceleration (has sign)
-    // volatile float errorVelocityIntegral = 0;   // distance (caped, has sign)
-    // volatile int32_t oldErrorVelocity = errorVelocity;
-    // volatile int32_t errorVelocity = 0;           // velocity (has sign)
-
     // Distance control
     float errorPosition;
     static float errorPositionOld; // motorPosition=0 when start;
 
     //Speed control
     float errorSpeed;
+    static float errorSpeedOld;
     static float errorSpeedIntegral;
+    static float errorSpeedDiff;
 
     // example while loop
     while (1)
@@ -354,6 +324,7 @@ void TRD_motor_controller(){
 
             errorPositionOld = errorPosition;
 
+
             // Speed controller
             if (abs(errorPosition) > APPROACH_D){
                 errorSpeed = (errorPosition>=0) ? tSpeed - motorVelocity :  -tSpeed - motorVelocity;
@@ -364,28 +335,21 @@ void TRD_motor_controller(){
                 errorSpeed = (errorPosition>=0) ? APPROACH_V - motorVelocity : -APPROACH_V - motorVelocity;
                 errorSpeedIntegral = 0; //only use P controller for stability
             }
+            errorSpeedDiff = errorSpeed - errorSpeedOld;
+            errorSpeedOld = errorSpeed;
 
 
-            torque_s = V_KP*errorSpeed + V_KI*errorSpeedIntegral;
+            torque_s = V_KP*errorSpeed + V_KI*errorSpeedIntegral + V_KD*errorSpeedDiff;
 
 
-
-            // if(errorPosition_Diff<0) torque_s = -torque_s;
-
-            // select torque
-            //TODO
-            // if (motorVelocity>=0){
-            //     torque = torque_d > torque_s ? torque_s : torque_d; // min
-            // }else{
-            //     torque = torque_d > torque_s ? torque_d : torque_s; //max
-            // }
             torque = abs(torque_d) > abs(torque_s) ? torque_s : torque_d; // taken min
             setTorque(torque);
 
 
 
-            // pc.printf("\nR:%f->%f, V:%f->%f, td:%f, ts:%f %f\n", float(motorPosition)/6, float(tPosition)/6, float(motorVelocity)*10/6, float(tSpeed)*10/6, torque_d, torque_s, errorSpeedIntegral);
+            // pc.printf("\nR:%f->%f, V:%f->%f, td:%f, ts:%f, %f\n", float(motorPosition)/6, float(tPosition)/6, float(motorVelocity)*10/6, float(tSpeed)*10/6, torque_d, torque_s, errorSpeedIntegral);
         }
+
 
         if (flags & SIGNAL_MOTOR_T_TUNE_CHANGE){
             led=0;
@@ -400,43 +364,10 @@ void TRD_motor_controller(){
             }
             motorCfgMutex.unlock();
 
-            // pc.printf("\n");
-            // for (int i=0; i<16; i++){
-            //     pc.printf("%hhX, ", tunes[i]);
-            // }
-            // pc.printf("\n");
 
             ISR_tuner();
 
         }
 
-    //     //set rotation for testig
-    //     if(rotation>0){
-
-    //     ys = kp*(TSpeed - deltaPosition) + integral_vel_er + diff_vel_error;
-    //     // if (ys<0){
-    //     //     lead = -2;
-    //     // }
-    //     ys = (ys>0) ? ys : 0;
-    //     ys = (ys > 1000 )? 1000 : ys;//Pwm limit
-    //     //if(ys!=0){
-    //     MotorPWM.pulsewidth(ys);
-    //    // }
-    //     pc.printf("\n%i, %f, %f\n", int(accPosition), float(deltaPosition)*10/6, ys);
-    //     }
-    //     else{
-    //     ys = kp*(TSpeed - abs(deltaPosition)) + integral_vel_er+diff_vel_error;
-    //     ys = (ys>0) ? ys : 0;
-    //     ys = (ys > 1000 )? 1000 : ys;
-    //     MotorPWM.pulsewidth(ys);
-    //     pc.printf("\n%i, %f, %f\n", int(accPosition), float(deltaPosition)*10/6, ys);
-    //     }
-
-        // velocity = (newPosition - oldPosition)*60*10;
-        // pc.printf("the velocity is %i", (int)velocity);
-        // uint32_t flag = ThisThread::flags_wait_any(SIGNAL_MOTOR_T_SPEED_CHANGE | SIGNAL_MOTOR_T_ROTATION_CHANGE | SIGNAL_MOTOR_T_TUNE_CHANGE);
-        // if(flag & SIGNAL_MOTOR_T_SPEED_CHANGE) pc.printf("\nChange speed to %f\n", get_tspeed());
-        // if(flag & SIGNAL_MOTOR_T_ROTATION_CHANGE) pc.printf("\nChange rotation to %f\n", get_trotation());
-        // if(flag & SIGNAL_MOTOR_T_TUNE_CHANGE) pc.printf("\nChange Tune\n");
     }
 }
