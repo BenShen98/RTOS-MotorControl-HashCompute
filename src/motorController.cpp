@@ -347,7 +347,7 @@ void TRD_motor_controller(){
 
 
 
-            // pc.printf("\nR:%f->%f, V:%f->%f, td:%f, ts:%f, %f\n", float(motorPosition)/6, float(tPosition)/6, float(motorVelocity)*10/6, float(tSpeed)*10/6, torque_d, torque_s, errorSpeedIntegral);
+            // pc.printf("\rR:%f->%f, V:%f->%f, td:%f, ts:%f, %f\r", float(motorPosition)/6, float(tPosition)/6, float(motorVelocity)*10/6, float(tSpeed)*10/6, torque_d, torque_s, errorSpeedIntegral);
         }
 
 

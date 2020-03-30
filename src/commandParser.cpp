@@ -16,11 +16,11 @@ inline void cmd_buffer_skip_line(){
 }
 
 void debug_char(char* buffer, int size){
-    pc.printf("\n***\n");
+    pc.printf("\r***\r");
     for (int i=0; i<size; ++i){
         pc.printf("%02x ", (unsigned) buffer[i]);
     }
-    pc.printf("\n***\n");
+    pc.printf("\r***\r");
 }
 
 void cmd_buffer_to_tune(volatile uint8_t Tunes[16]){
@@ -137,7 +137,7 @@ void TRD_command_parser(){
 
 
             default:
-                pc.printf("\nUnkown command\n");
+                pc.printf("\rUnkown command\r");
                 cmd_buffer_skip_line();
             }
         }

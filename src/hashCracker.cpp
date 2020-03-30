@@ -45,7 +45,7 @@ void TRD_hash_cracker(){
                 ThisThread::flags_clear(SIGNAL_HASH_KEY_CHANGE);
                 hashKeyMutex.unlock();
 
-                pc.printf("\nSet new key %016llX\n", *key);
+                pc.printf("\rSet new key %016llX\r\n", *key);
 
                 // no need to reset nonce, 64 bit circular counter
             }
@@ -53,7 +53,7 @@ void TRD_hash_cracker(){
             // compute key and send nonce to pc
             SHA256::computeHash(hash, sequence, 64);
             if (hash[0]==0x0 && hash[1]==0x00){
-                pc.printf("N%016llX\n", *nonce);
+                pc.printf("N%016llX\r", *nonce);
             }
 
         }
